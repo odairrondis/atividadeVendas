@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes da Venda #{{ venda.id }} - Minhas Vendas{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Detalhes da Venda #{{ venda.id }}</h1>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações da Venda</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Cliente:</strong> {{ venda.cliente.nome }}</p>
+                <p><strong>Telefone do Cliente:</strong> {{ venda.cliente.telefone|default:"N/A" }}</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p><strong>Data da Venda:</strong> {{ venda.data_venda|date:"d/m/Y H:i" }}</p>
+                <p><strong>Valor Total:</strong> <span class="badge bg-success fs-5">R$ {{ venda.valor_total|floatformat:2 }}</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Itens da Venda</h5>
+    </div>
+    <div class="card-body">
+        {% if venda.itens.all %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th class="text-center">Quantidade</th>
+                        <th class="text-end">Preço Unitário</th>
+                        <th class="text-end">Total do Item</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in venda.itens.all %}
+                    <tr>
+                        <td>{{ item.produto.descricao }}</td>
+                        <td class="text-center">{{ item.quantidade }}</td>
+                        <td class="text-end">R$ {{ item.preco_unitario|floatformat:2 }}</td>
+                        <td class="text-end">R$ {{ item.total_item|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            Nenhum item encontrado para esta venda.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<p>
+    <a href="{% url 'core:venda_lista' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar para a Lista de Vendas
+    </a>
+</p>
+{% endblock %}

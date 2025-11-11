@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Nova Venda - Minhas Vendas{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Realizar Nova Venda</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user-tag me-2"></i>Informações da Venda</h5>
+            </div>
+            <div class="card-body">
+                <form id="formVenda" method="post" action="{% url 'core:venda_criar' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_cliente" class="form-label">Cliente:</label>
+                        {{ venda_form.cliente }}
+                    </div>
+
+                    <h5 class="mt-4"><i class="fas fa-cart-plus me-2"></i>Adicionar Produtos</h5>
+                    <div class="mb-3">
+                        <label for="produto_selecionado" class="form-label">Produto:</label>
+                        <select id="produto_selecionado" class="form-select">
+                            <option value="">Selecione um produto...</option>
+                            {% for produto in produtos_disponiveis %}
+                                <option value="{{ produto.id }}" data-descricao="{{ produto.descricao }}" data-valor="{{ produto.valor|floatformat:2 }}" data-estoque="{{ produto.estoque }}">
+                                    {{ produto.descricao }} (R$ {{ produto.valor|floatformat:2 }}) - Estoque: {{ produto.estoque }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantidade_produto" class="form-label">Quantidade:</label>
+                        <input type="number" id="quantidade_produto" class="form-control" value="1" min="1">
+                    </div>
+                    <button type="button" id="adicionar_item_btn" class="btn btn-success w-100 mb-3">
+                        <i class="fas fa-plus me-2"></i>Adicionar Item ao Carrinho
+                    </button>
+                    
+                    <hr>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-dollar-sign me-2"></i>Finalizar Venda
+                    </button>
+                    <input type="hidden" name="itens_venda" id="itens_venda_input">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Itens no Carrinho</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th class="text-center">Qtd.</th>
+                                <th class="text-end">Valor Unit.</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carrinho_items">
+                            <!-- Itens do carrinho serão adicionados aqui via JS -->
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Nenhum item adicionado ao carrinho ainda.</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Total da Venda:</th>
+                                <th id="total_venda_carrinho" class="text-end">R$ 0,00</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let carrinho = []; // Array para armazenar os itens do carrinho no frontend
+
+        // Função para carregar o carrinho inicial se houver dados de um POST falho
+        function loadInitialCart() {
+            const initialCartJson = document.getElementById('itens_venda_input').value;
+            if (initialCartJson && initialCartJson !== '[]') {
+                try {
+                    carrinho = JSON.parse(initialCartJson);
+                    renderizarCarrinho();
+                } catch (e) {
+                    console.error("Erro ao carregar carrinho inicial:", e);
+                }
+            }
+        }
+        loadInitialCart();
+
+        function renderizarCarrinho() {
+            const carrinhoItemsTbody = document.getElementById('carrinho_items');
+            carrinhoItemsTbody.innerHTML = ''; // Limpa os itens existentes
+
+            let totalGeral = 0;
+
+            if (carrinho.length === 0) {
+                carrinhoItemsTbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Nenhum item adicionado ao carrinho ainda.</td>
+                    </tr>
+                `;
+            } else {
+                carrinho.forEach((item, index) => {
+                    const row = `
+                        <tr data-produto-id="${item.produto_id}">
+                            <td>${item.descricao}</td>
+                            <td class="text-center">
+                                <input type="number" class="form-control form-control-sm text-center quantidade-item" 
+                                    value="${item.quantidade}" min="1" data-produto-id="${item.produto_id}"
+                                    data-estoque-max="${item.estoque_max}" style="width: 70px; display: inline-block;">
+                            </td>
+                            <td class="text-end">R$ ${item.valor_unitario.toFixed(2)}</td>
+                            <td class="text-end item-total">R$ ${(item.quantidade * item.valor_unitario).toFixed(2)}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-danger btn-sm remover-item-btn" data-produto-id="${item.produto_id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    carrinhoItemsTbody.innerHTML += row;
+                    totalGeral += item.quantidade * item.valor_unitario;
+                });
+            }
+            document.getElementById('total_venda_carrinho').textContent = `R$ ${totalGeral.toFixed(2)}`;
+            document.getElementById('itens_venda_input').value = JSON.stringify(carrinho); // Atualiza o input hidden
+        }
+
+        document.getElementById('adicionar_item_btn').addEventListener('click', function() {
+            const selectProduto = document.getElementById('produto_selecionado');
+            const produtoId = selectProduto.value;
+            const quantidadeInput = document.getElementById('quantidade_produto');
+            const quantidade = parseInt(quantidadeInput.value);
+
+            if (!produtoId) {
+                alert('Por favor, selecione um produto.');
+                return;
+            }
+            if (isNaN(quantidade) || quantidade <= 0) {
+                alert('A quantidade deve ser um número positivo.');
+                return;
+            }
+
+            const selectedOption = selectProduto.options[selectProduto.selectedIndex];
+            const descricao = selectedOption.dataset.descricao;
+            const valorUnitario = parseFloat(selectedOption.dataset.valor);
+            const estoqueMax = parseInt(selectedOption.dataset.estoque);
+
+            let itemExistente = carrinho.find(item => item.produto_id == produtoId);
+
+            if (itemExistente) {
+                const novaQuantidade = itemExistente.quantidade + quantidade;
+                if (novaQuantidade > estoqueMax) {
+                    alert(`Não é possível adicionar mais ${quantidade} unidades. Estoque disponível: ${estoqueMax - itemExistente.quantidade}.`);
+                    return;
+                }
+                itemExistente.quantidade = novaQuantidade;
+            } else {
+                if (quantidade > estoqueMax) {
+                    alert(`Estoque insuficiente para ${descricao}. Disponível: ${estoqueMax}`);
+                    return;
+                }
+                carrinho.push({
+                    produto_id: parseInt(produtoId),
+                    descricao: descricao,
+                    valor_unitario: valorUnitario,
+                    quantidade: quantidade,
+                    estoque_max: estoqueMax
+                });
+            }
+            renderizarCarrinho();
+            selectProduto.value = ''; // Limpa a seleção
+            quantidadeInput.value = '1'; // Reseta a quantidade
+        });
+
+        document.getElementById('carrinho_items').addEventListener('click', function(event) {
+            if (event.target.closest('.remover-item-btn')) {
+                const button = event.target.closest('.remover-item-btn');
+                const produtoIdParaRemover = parseInt(button.dataset.produtoId);
+                carrinho = carrinho.filter(item => item.produto_id !== produtoIdParaRemover);
+                renderizarCarrinho();
+            }
+        });
+
+        document.getElementById('carrinho_items').addEventListener('change', function(event) {
+            if (event.target.classList.contains('quantidade-item')) {
+                const input = event.target;
+                const produtoId = parseInt(input.dataset.produtoId);
+                let novaQuantidade = parseInt(input.value);
+                const estoqueMax = parseInt(input.dataset.estoqueMax);
+
+                if (isNaN(novaQuantidade) || novaQuantidade <= 0) {
+                    novaQuantidade = 1; // Garante que a quantidade mínima é 1
+                    input.value = 1;
+                }
+                if (novaQuantidade > estoqueMax) {
+                    alert(`Quantidade máxima para este produto é ${estoqueMax}.`);
+                    novaQuantidade = estoqueMax;
+                    input.value = estoqueMax;
+                }
+
+                const itemExistente = carrinho.find(item => item.produto_id === produtoId);
+                if (itemExistente) {
+                    itemExistente.quantidade = novaQuantidade;
+                }
+                renderizarCarrinho();
+            }
+        });
+
+        document.getElementById('formVenda').addEventListener('submit', function(event) {
+            // Este evento já é tratado pelo Django via POST.
+            // O JavaScript apenas garante que o input hidden 'itens_venda_input' esteja atualizado.
+            if (carrinho.length === 0) {
+                alert('Adicione pelo menos um item à venda antes de finalizar.');
+                event.preventDefault(); // Impede o envio do formulário
+            }
+            // O valor do input hidden já está sendo atualizado em renderizarCarrinho()
+        });
+
+        // Initialize cart display
+        renderizarCarrinho();
+    });
+</script>
+{% endblock %}

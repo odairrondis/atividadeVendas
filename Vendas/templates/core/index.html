@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Menu Principal - Minhas Vendas{% endblock %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-light rounded-3 text-center">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">Bem-vindo(a) ao Sistema de Vendas!</h1>
+        <p class="col-md-8 fs-4 mx-auto">Navegue pelas opções abaixo para gerenciar clientes, produtos e realizar vendas.</p>
+        <hr class="my-4">
+        <div class="d-grid gap-2 col-6 mx-auto">
+            <a class="btn btn-primary btn-lg" href="{% url 'core:cliente_lista' %}" role="button">
+                <i class="fas fa-users me-2"></i>Gerenciar Clientes
+            </a>
+            <a class="btn btn-success btn-lg" href="{% url 'core:produto_lista' %}" role="button">
+                <i class="fas fa-box-open me-2"></i>Gerenciar Produtos
+            </a>
+            <a class="btn btn-warning btn-lg" href="{% url 'core:venda_criar' %}" role="button">
+                <i class="fas fa-cash-register me-2"></i>Realizar Nova Venda
+            </a>
+            <a class="btn btn-info btn-lg" href="{% url 'core:venda_lista' %}" role="button">
+                <i class="fas fa-receipt me-2"></i>Ver Vendas Existentes
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
